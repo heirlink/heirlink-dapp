@@ -1,0 +1,8 @@
+{
+    "beacon": "0xa1a5bD0dDB1eef3feAf861009748833494ED15a3",
+    "beaconOwner": "0x629d5B9255A140d4c373B29f751669563ED54916",
+    "chainId": 560048,
+    "deployer": "0x629d5B9255A140d4c373B29f751669563ED54916",
+    "factory": "0x7c88D58b42824f053F84D2f5Ca5Fb9bc0D36ac20",
+    "implementation": "0xb4D8D30E8fAB24FBc7Abb3C0b4E8E0359E825545"
+}

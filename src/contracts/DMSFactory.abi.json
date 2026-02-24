@@ -1,0 +1,98 @@
+[
+    {
+        "type": "constructor",
+        "inputs": [
+            {
+                "name": "beacon_",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "BEACON",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "deployVault",
+        "inputs": [
+            {
+                "name": "periodDays",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "owner",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "tokens",
+                "type": "address[]",
+                "internalType": "address[]"
+            },
+            {
+                "name": "root",
+                "type": "bytes32",
+                "internalType": "bytes32"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "vaultAddr",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "vaults",
+        "inputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "event",
+        "name": "VaultDeployed",
+        "inputs": [
+            {
+                "name": "vault",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            },
+            {
+                "name": "owner",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    }
+]

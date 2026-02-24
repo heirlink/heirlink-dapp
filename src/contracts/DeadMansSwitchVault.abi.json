@@ -1,0 +1,590 @@
+[
+    {
+        "type": "fallback",
+        "stateMutability": "payable"
+    },
+    {
+        "type": "receive",
+        "stateMutability": "payable"
+    },
+    {
+        "type": "function",
+        "name": "ETH_ADDRESS",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "cancelDms",
+        "inputs": [],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "claimWithProof",
+        "inputs": [
+            {
+                "name": "heir",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "heirId",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "sharesBps_",
+                "type": "uint16[]",
+                "internalType": "uint16[]"
+            },
+            {
+                "name": "proof",
+                "type": "bytes32[]",
+                "internalType": "bytes32[]"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "claimedLeaf",
+        "inputs": [
+            {
+                "name": "",
+                "type": "bytes32",
+                "internalType": "bytes32"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "confirmActivity",
+        "inputs": [],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "distributed",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "dmsEnabled",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "enableDms",
+        "inputs": [],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "initialize",
+        "inputs": [
+            {
+                "name": "periodDays_",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "owner_",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "tokens_",
+                "type": "address[]",
+                "internalType": "address[]"
+            },
+            {
+                "name": "root_",
+                "type": "bytes32",
+                "internalType": "bytes32"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "isExpired",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "lastActivityAt",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "merkleRoot",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bytes32",
+                "internalType": "bytes32"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "owner",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "ownerWithdrawEth",
+        "inputs": [
+            {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "to",
+                "type": "address",
+                "internalType": "address payable"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "ownerWithdrawToken",
+        "inputs": [
+            {
+                "name": "tokenAddr",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "to",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "periodSeconds",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "setMerkleRoot",
+        "inputs": [
+            {
+                "name": "root",
+                "type": "bytes32",
+                "internalType": "bytes32"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "setPeriodDays",
+        "inputs": [
+            {
+                "name": "periodDays_",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "setTokens",
+        "inputs": [
+            {
+                "name": "tokens_",
+                "type": "address[]",
+                "internalType": "address[]"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "tokens",
+        "inputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "updateWill",
+        "inputs": [
+            {
+                "name": "tokens_",
+                "type": "address[]",
+                "internalType": "address[]"
+            },
+            {
+                "name": "root_",
+                "type": "bytes32",
+                "internalType": "bytes32"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "event",
+        "name": "ActivityConfirmed",
+        "inputs": [
+            {
+                "name": "owner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "timestamp",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "ClaimedWithProof",
+        "inputs": [
+            {
+                "name": "heir",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "leaf",
+                "type": "bytes32",
+                "indexed": true,
+                "internalType": "bytes32"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "DmsCancelled",
+        "inputs": [
+            {
+                "name": "owner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "DmsEnabled",
+        "inputs": [
+            {
+                "name": "owner",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "DmsPeriodUpdated",
+        "inputs": [
+            {
+                "name": "periodDays",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "Initialized",
+        "inputs": [
+            {
+                "name": "version",
+                "type": "uint64",
+                "indexed": false,
+                "internalType": "uint64"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "MerkleRootUpdated",
+        "inputs": [
+            {
+                "name": "root",
+                "type": "bytes32",
+                "indexed": false,
+                "internalType": "bytes32"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "OwnerWithdrawETH",
+        "inputs": [
+            {
+                "name": "amount",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "to",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "OwnerWithdrawToken",
+        "inputs": [
+            {
+                "name": "amount",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "to",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "TokensUpdated",
+        "inputs": [
+            {
+                "name": "tokens",
+                "type": "address[]",
+                "indexed": false,
+                "internalType": "address[]"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "WillUpdated",
+        "inputs": [
+            {
+                "name": "root",
+                "type": "bytes32",
+                "indexed": false,
+                "internalType": "bytes32"
+            },
+            {
+                "name": "tokens",
+                "type": "address[]",
+                "indexed": false,
+                "internalType": "address[]"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "error",
+        "name": "AlreadyClaimed",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "AlreadyDistributed",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "DmsDisabled",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "ETHTransferFailed",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "InvalidInitialization",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "InvalidPeriod",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "InvalidProof",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "InvalidShares",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "InvalidSharesBps",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "InvalidToken",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "NotDistributed",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "NotExpired",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "NotInitializing",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "NotOwner",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "NothingToDistribute",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "Reentrancy",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "TokenTransferFailed",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "ZeroAddress",
+        "inputs": []
+    }
+]
