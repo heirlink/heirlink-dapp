@@ -553,7 +553,6 @@ export default function ManagePage() {
                   <input
                     type="number"
                     min={1}
-                    max={3650}
                     value={newPeriodDays}
                     onChange={(e) => setNewPeriodDays(e.target.value)}
                     placeholder="365"
@@ -568,7 +567,7 @@ export default function ManagePage() {
                       if (!vault || !newPeriodDays.trim()) return;
                       const days = Math.max(
                         1,
-                        Math.min(3650, Number(newPeriodDays)),
+                        Math.floor(Number(newPeriodDays)),
                       );
                       await writeVault({
                         address: vault,

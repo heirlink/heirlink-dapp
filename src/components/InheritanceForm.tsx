@@ -73,7 +73,6 @@ export function InheritanceForm() {
           <input
             type="number"
             min={1}
-            max={3650}
             value={periodDays}
             onChange={(e) => setPeriodDays(parseInt(e.target.value, 10) || 365)}
             className="w-20 rounded-lg border border-black/10 bg-white px-2 py-1.5 text-ink outline-none focus:ring-2 focus:ring-gold/30"
