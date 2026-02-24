@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
 
+  turbopack: { root: process.cwd() },
+
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve ??= {};

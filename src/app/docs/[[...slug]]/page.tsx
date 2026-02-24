@@ -6,6 +6,12 @@ type PageProps = {
   params: Promise<{ slug?: string[] }>;
 };
 
+export function generateStaticParams() {
+  return docsNav.map((d) => ({
+    slug: d.slug === "" ? [] : [d.slug],
+  }));
+}
+
 export default async function DocsPage({ params }: PageProps) {
   const { slug } = await params;
   const slugStr = slug?.[0] ?? "";
