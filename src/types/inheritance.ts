@@ -24,5 +24,8 @@ export type MerkleResult = {
   tokens?: string[];
 };
 
-/** Режим генерации дерева: раскрыть доли (полные доли по токенам) / скрыть доли (будущий режим) */
+/** Режим генерации дерева: раскрыть доли (полные доли по токенам) / скрыть доли (шифрование + Shamir) */
 export type TreeMode = "expand_shares" | "collapse_shares";
+
+/** Способ разделения ключа при скрытии долей */
+export type CollapseMode = "heirs" | "organization";

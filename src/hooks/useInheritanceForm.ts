@@ -3,7 +3,9 @@
 import * as React from "react";
 import { useBalance, useConnection, useReadContracts } from "wagmi";
 import { erc20Abi, formatUnits } from "viem";
+import sss from "shamirs-secret-sharing";
 import { buildMerkleTree } from "@/lib/merkle";
+import { generateEncryptionKey, encryptSharesBps } from "@/lib/crypto";
 import {
   ETH_PLACEHOLDER,
   isValidAddress,
@@ -15,6 +17,7 @@ import type {
   MerkleResult,
   TokenInfo,
   TreeMode,
+  CollapseMode,
 } from "@/types/inheritance";
 
 export type SubmitMode = "update" | "createNew";
@@ -50,11 +53,9 @@ export function useInheritanceForm(options?: UseInheritanceFormOptions) {
   const [merkleResult, setMerkleResult] = React.useState<MerkleResult | null>(
     null,
   );
-  /** Пока работаем только с раскрытыми долями. Режим "скрыть доли" добавим позже. */
-  const treeMode: TreeMode = "expand_shares";
-  const setTreeMode = React.useCallback((_mode: TreeMode) => {
-    // намеренно пусто
-  }, []);
+  const [treeMode, setTreeMode] = React.useState<TreeMode>("expand_shares");
+  const [collapseMode, setCollapseMode] = React.useState<CollapseMode>("heirs");
+  const [shamirThreshold, setShamirThreshold] = React.useState(2);
 
   const effectiveTokens = includeEth ? [ETH_PLACEHOLDER, ...tokens] : tokens;
   const tokenCount = effectiveTokens.length;
@@ -234,7 +235,7 @@ export function useInheritanceForm(options?: UseInheritanceFormOptions) {
 
   /** Скачивает общее дерево и файлы наследников. В heir_*.json сохраняется owner (адрес наследодателя) — vault при клейме берётся через фабрику. */
   const doDownload = React.useCallback(
-    (result: MerkleResult) => {
+    async (result: MerkleResult) => {
       const tokensToSave = result.tokens ?? tokenList;
 
       const downloadJson = (obj: object, filename: string) => {
@@ -259,24 +260,85 @@ export function useInheritanceForm(options?: UseInheritanceFormOptions) {
         "merkleTree",
       );
 
-      result.heirs.forEach((h) => {
-        const namePart = h.name?.trim()
-          ? `_${h.name.replace(/[<>:"/\\|?*]/g, "_").trim()}`
-          : "";
-        downloadJson(
-          {
-            heirId: h.heirId,
-            name: h.name,
-            sharesBps: h.sharesBps,
-            leaf: h.leaf,
-            proof: h.proof,
-            ...(userAddress ? { owner: userAddress } : {}),
-          },
-          `heir_${h.heirId}${namePart}`,
-        );
-      });
+      if (treeMode === "collapse_shares") {
+        const keyHex = await generateEncryptionKey();
+        const heirCount = result.heirs.length;
+
+        let shareCount: number;
+        let threshold: number;
+        if (collapseMode === "heirs") {
+          shareCount = Math.max(2, heirCount);
+          threshold = Math.max(2, Math.min(shamirThreshold, shareCount));
+        } else {
+          shareCount = 2;
+          threshold = 2;
+        }
+
+        const keyBuf = sss.Buffer.from(keyHex, "hex");
+        const shamirShares = sss.split(keyBuf, {
+          shares: shareCount,
+          threshold,
+        });
+        const shamirHex = shamirShares.map((b) => b.toString("hex"));
+
+        for (let i = 0; i < result.heirs.length; i++) {
+          const h = result.heirs[i];
+          const encrypted = await encryptSharesBps(h.sharesBps, keyHex);
+          const share =
+            collapseMode === "heirs" ? shamirHex[i] : shamirHex[0];
+          const namePart = h.name?.trim()
+            ? `_${h.name.replace(/[<>:"/\\|?*]/g, "_").trim()}`
+            : "";
+          downloadJson(
+            {
+              heirId: h.heirId,
+              name: h.name,
+              encryptedShares: encrypted,
+              shamirShare: share,
+              shamirThreshold: threshold,
+              shamirTotal: shareCount,
+              shamirMode:
+                collapseMode === "organization" ? "organization" : "heirs",
+              leaf: h.leaf,
+              proof: h.proof,
+              ...(userAddress ? { owner: userAddress } : {}),
+            },
+            `heir_${h.heirId}${namePart}`,
+          );
+        }
+
+        if (collapseMode === "organization") {
+          downloadJson(
+            {
+              shamirShare: shamirHex[1],
+              shamirThreshold: threshold,
+              shamirTotal: shareCount,
+              description:
+                "Доля ключа для организации. Передайте доверенной организации, которая свяжется с наследниками для восстановления ключа шифрования.",
+            },
+            "organization_key_share",
+          );
+        }
+      } else {
+        result.heirs.forEach((h) => {
+          const namePart = h.name?.trim()
+            ? `_${h.name.replace(/[<>:"/\\|?*]/g, "_").trim()}`
+            : "";
+          downloadJson(
+            {
+              heirId: h.heirId,
+              name: h.name,
+              sharesBps: h.sharesBps,
+              leaf: h.leaf,
+              proof: h.proof,
+              ...(userAddress ? { owner: userAddress } : {}),
+            },
+            `heir_${h.heirId}${namePart}`,
+          );
+        });
+      }
     },
-    [tokenList, userAddress],
+    [tokenList, userAddress, treeMode, collapseMode, shamirThreshold],
   );
 
   const handleSubmit = async (mode: SubmitMode = "createNew") => {
@@ -318,7 +380,7 @@ export function useInheritanceForm(options?: UseInheritanceFormOptions) {
       tokens: tokenList,
     };
     setMerkleResult(fullResult);
-    doDownload(fullResult);
+    await doDownload(fullResult);
     if (onAfterGenerate) {
       try {
         await onAfterGenerate(fullResult, mode);
@@ -354,9 +416,13 @@ export function useInheritanceForm(options?: UseInheritanceFormOptions) {
     setHeirShare,
     tokenErrors,
     tokenCount,
-    // Tree mode (бегунок скрыть/раскрыть доли)
+    // Tree mode
     treeMode,
     setTreeMode,
+    collapseMode,
+    setCollapseMode,
+    shamirThreshold,
+    setShamirThreshold,
     // Errors
     heirIdError,
     // Submit

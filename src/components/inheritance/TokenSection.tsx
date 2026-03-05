@@ -3,11 +3,16 @@
 import { formatUnits } from "viem";
 import { isValidAddress } from "@/lib/inheritance-utils";
 import { formatNumberWithSpaces } from "@/lib/format";
-import type { TokenInfo, TreeMode } from "@/types/inheritance";
+import type { TokenInfo, TreeMode, CollapseMode } from "@/types/inheritance";
 
 type TokenSectionProps = {
   treeMode: TreeMode;
   setTreeMode: (mode: TreeMode) => void;
+  collapseMode: CollapseMode;
+  setCollapseMode: (mode: CollapseMode) => void;
+  shamirThreshold: number;
+  setShamirThreshold: (n: number) => void;
+  heirCount: number;
   includeEth: boolean;
   setIncludeEth: (v: boolean) => void;
   tokens: string[];
@@ -23,6 +28,11 @@ type TokenSectionProps = {
 export function TokenSection({
   treeMode,
   setTreeMode,
+  collapseMode,
+  setCollapseMode,
+  shamirThreshold,
+  setShamirThreshold,
+  heirCount,
   includeEth,
   setIncludeEth,
   tokens,
@@ -54,9 +64,7 @@ export function TokenSection({
             sharesExpanded ? "Режим: раскрыть доли" : "Режим: скрыть доли"
           }
           onClick={handleSharesMode}
-          disabled
-          aria-disabled="true"
-          className="relative inline-flex h-8 w-52 flex-shrink-0 overflow-hidden rounded-full border-2 border-amber-200 bg-amber-50/80 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-70"
+          className="relative inline-flex h-8 w-52 flex-shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-amber-200 bg-amber-50/80 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 hover:bg-amber-50"
         >
           <span
             className={`absolute top-1 bottom-1 w-1/2 rounded-full bg-amber-500 shadow transition-transform ${
@@ -79,6 +87,87 @@ export function TokenSection({
           </span>
         </button>
       </div>
+
+      {treeMode === "collapse_shares" && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/60 p-4 space-y-4">
+          <p className="text-sm text-ink">
+            Доли в файлах наследников будут зашифрованы. Для расшифровки
+            потребуется ключ, разделённый по схеме Шамира.
+          </p>
+
+          <div className="space-y-3">
+            <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-amber-200 bg-white p-3 transition hover:border-amber-400">
+              <input
+                type="radio"
+                name="collapseMode"
+                checked={collapseMode === "heirs"}
+                onChange={() => setCollapseMode("heirs")}
+                className="mt-0.5 h-4 w-4 text-amber-500 focus:ring-amber-400"
+              />
+              <div>
+                <span className="text-sm font-semibold text-ink">
+                  Разделить ключ между наследниками
+                </span>
+                <p className="mt-1 text-xs text-muted">
+                  Ключ делится на {Math.max(2, heirCount)} частей (по числу
+                  наследников). Каждый наследник получает свою уникальную долю
+                  ключа. Для восстановления нужно собрать не менее порога долей.
+                </p>
+                <p className="mt-1 text-xs font-medium text-amber-700">
+                  Наследники сами ответственны за восстановление ключа и
+                  координацию между собой.
+                </p>
+                {collapseMode === "heirs" && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-xs text-muted">
+                      Порог восстановления:
+                    </span>
+                    <input
+                      type="number"
+                      min={2}
+                      max={Math.max(2, heirCount)}
+                      value={shamirThreshold}
+                      onChange={(e) =>
+                        setShamirThreshold(
+                          Math.max(2, parseInt(e.target.value, 10) || 2),
+                        )
+                      }
+                      className="w-16 rounded-lg border border-black/10 bg-white px-2 py-1 text-sm text-ink outline-none focus:ring-2 focus:ring-amber-300"
+                    />
+                    <span className="text-xs text-muted">
+                      из {Math.max(2, heirCount)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </label>
+
+            <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-amber-200 bg-white p-3 transition hover:border-amber-400">
+              <input
+                type="radio"
+                name="collapseMode"
+                checked={collapseMode === "organization"}
+                onChange={() => setCollapseMode("organization")}
+                className="mt-0.5 h-4 w-4 text-amber-500 focus:ring-amber-400"
+              />
+              <div>
+                <span className="text-sm font-semibold text-ink">
+                  Разделить ключ на 2 доли (с организацией)
+                </span>
+                <p className="mt-1 text-xs text-muted">
+                  Все наследники получат одинаковую первую долю ключа. Вторая
+                  доля сохранится в отдельный файл — передайте его доверенной
+                  организации.
+                </p>
+                <p className="mt-1 text-xs font-medium text-amber-700">
+                  Организация выйдет на связь с наследниками и предоставит свою
+                  долю для восстановления ключа.
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+      )}
       <h2 className="text-lg font-semibold text-ink">Токены</h2>
       <p className="mt-1 text-sm text-muted">
         Адреса ERC-20 (или ETH). Добавьте нужное количество.

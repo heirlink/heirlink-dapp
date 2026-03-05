@@ -38,6 +38,11 @@ export function InheritanceForm() {
       <TokenSection
         treeMode={form.treeMode}
         setTreeMode={form.setTreeMode}
+        collapseMode={form.collapseMode}
+        setCollapseMode={form.setCollapseMode}
+        shamirThreshold={form.shamirThreshold}
+        setShamirThreshold={form.setShamirThreshold}
+        heirCount={form.heirs.length}
         includeEth={form.includeEth}
         setIncludeEth={form.setIncludeEth}
         tokens={form.tokens}

@@ -9,10 +9,12 @@ import {
   useWriteContract,
 } from "wagmi";
 import { formatUnits, erc20Abi } from "viem";
+import sss from "shamirs-secret-sharing";
 import { FACTORY_ADDRESS } from "@/lib/contracts";
 import { formatNumberWithSpaces } from "@/lib/format";
 import { CopyIcon, CheckIcon } from "@/components/copy-icons";
 import { ETH_PLACEHOLDER } from "@/lib/inheritance-utils";
+import { decryptSharesBps } from "@/lib/crypto";
 import factoryAbi from "@/contracts/DMSFactory.abi.json";
 import vaultAbi from "@/contracts/DeadMansSwitchVault.abi.json";
 
@@ -21,12 +23,16 @@ const vaultAbiTyped = vaultAbi as readonly unknown[];
 const MAX_TOKENS = 32;
 
 type HeirFile = {
-  /** Адрес наследодателя (owner) — vault получаем через фабрику: factory.vaults(owner). */
   owner?: string;
   vault?: string;
   heirId: number;
   name?: string;
-  sharesBps: number[];
+  sharesBps?: number[];
+  encryptedShares?: string;
+  shamirShare?: string;
+  shamirThreshold?: number;
+  shamirTotal?: number;
+  shamirMode?: "heirs" | "organization";
   leaf?: string;
   proof?: string[];
 };
@@ -57,11 +63,26 @@ export default function ClaimPage() {
   const [copiedTokenAddr, setCopiedTokenAddr] = React.useState<string | null>(
     null,
   );
+  const [keyShareValue, setKeyShareValue] = React.useState<string | null>(null);
+  const [keyShareMeta, setKeyShareMeta] = React.useState<{
+    threshold?: number;
+    total?: number;
+    description?: string;
+  } | null>(null);
+  const [keyShareError, setKeyShareError] = React.useState<string | null>(null);
+  const [keyShareCopied, setKeyShareCopied] = React.useState(false);
 
   const copyTokenAddress = (addr: string) => {
     void navigator.clipboard.writeText(addr).then(() => {
       setCopiedTokenAddr(addr);
       setTimeout(() => setCopiedTokenAddr(null), 1500);
+    });
+  };
+
+  const copyKeyShare = (share: string) => {
+    void navigator.clipboard.writeText(share).then(() => {
+      setKeyShareCopied(true);
+      setTimeout(() => setKeyShareCopied(false), 1500);
     });
   };
 
@@ -318,36 +339,122 @@ export default function ClaimPage() {
     claimedLeaf,
   ]);
 
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUploadError(null);
-    setHeirData(null);
-    setVaultOverride("");
-    setTxError(null);
-    setTxSuccess(null);
+  const [shamirInputs, setShamirInputs] = React.useState<string[]>(["", ""]);
+  const [decryptError, setDecryptError] = React.useState<string | null>(null);
+  const [decrypting, setDecrypting] = React.useState(false);
+
+  const isEncrypted = !!(heirData?.encryptedShares && !heirData?.sharesBps);
+
+  const maxShamirInputs =
+    heirData?.shamirTotal ?? heirData?.shamirThreshold ?? undefined;
+
+  const onKeyShareFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setKeyShareError(null);
+    setKeyShareValue(null);
+    setKeyShareMeta(null);
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       try {
         const json = JSON.parse(reader.result as string) as unknown;
-        if (
-          json &&
-          typeof json === "object" &&
-          "heirId" in json &&
-          Array.isArray((json as HeirFile).sharesBps) &&
-          Array.isArray((json as HeirFile).proof)
-        ) {
-          setHeirData(json as HeirFile);
-        } else {
-          setUploadError(
-            "В файле должны быть поля heirId, sharesBps и proof (массивы).",
-          );
+        if (!json || typeof json !== "object" || !("shamirShare" in json)) {
+          setKeyShareError("В файле должно быть поле shamirShare.");
+          return;
         }
+        const data = json as {
+          shamirShare?: string;
+          shamirThreshold?: number;
+          shamirTotal?: number;
+          description?: string;
+        };
+        if (!data.shamirShare || typeof data.shamirShare !== "string") {
+          setKeyShareError("Поле shamirShare должно быть строкой.");
+          return;
+        }
+        setKeyShareValue(data.shamirShare);
+        setKeyShareMeta({
+          threshold:
+            typeof data.shamirThreshold === "number"
+              ? data.shamirThreshold
+              : undefined,
+          total:
+            typeof data.shamirTotal === "number" ? data.shamirTotal : undefined,
+          description:
+            typeof data.description === "string"
+              ? data.description
+              : undefined,
+        });
+      } catch {
+        setKeyShareError("Неверный JSON");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUploadError(null);
+    setHeirData(null);
+    setVaultOverride("");
+    setTxError(null);
+    setTxSuccess(null);
+    setDecryptError(null);
+    setShamirInputs(["", ""]);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const json = JSON.parse(reader.result as string) as unknown;
+        if (!json || typeof json !== "object" || !("heirId" in json)) {
+          setUploadError("В файле должно быть поле heirId.");
+          return;
+        }
+        const parsed = json as HeirFile;
+        const hasPlainShares = Array.isArray(parsed.sharesBps);
+        const hasEncrypted = typeof parsed.encryptedShares === "string";
+        if (!hasPlainShares && !hasEncrypted) {
+          setUploadError(
+            "В файле должны быть поля sharesBps (массив) или encryptedShares (зашифрованные доли).",
+          );
+          return;
+        }
+        if (hasEncrypted && parsed.shamirShare) {
+          setShamirInputs([parsed.shamirShare, ""]);
+        }
+        setHeirData(parsed);
       } catch {
         setUploadError("Неверный JSON");
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleDecrypt = async () => {
+    if (!heirData?.encryptedShares) return;
+    setDecryptError(null);
+    setDecrypting(true);
+    try {
+      const shares = shamirInputs.map((s) => s.trim()).filter(Boolean);
+      if (shares.length < 2) {
+        setDecryptError("Нужно минимум 2 доли ключа для восстановления.");
+        return;
+      }
+      const buffers = shares.map((h) => sss.Buffer.from(h, "hex"));
+      const combined = sss.combine(buffers);
+      const keyHex = combined.toString("hex");
+      const decrypted = await decryptSharesBps(
+        heirData.encryptedShares,
+        keyHex,
+      );
+      setHeirData({ ...heirData, sharesBps: decrypted });
+    } catch {
+      setDecryptError(
+        "Не удалось расшифровать доли. Проверьте доли ключа — возможно, не хватает долей или они неверны.",
+      );
+    } finally {
+      setDecrypting(false);
+    }
   };
 
   const handleClaim = async () => {
@@ -368,7 +475,9 @@ export default function ClaimPage() {
         args: [
           userAddress,
           BigInt(heirData.heirId),
-          heirData.sharesBps.map((n) => Math.max(0, Math.min(65535, n))),
+          (heirData.sharesBps ?? []).map((n) =>
+            Math.max(0, Math.min(65535, n)),
+          ),
           toBytes32Array(proof),
         ],
         gas: BigInt(16_000_000), // лимит сети 16_777_216, ставим ниже
@@ -387,6 +496,7 @@ export default function ClaimPage() {
     userAddress &&
     vaultAddress &&
     heirData &&
+    Array.isArray(heirData.sharesBps) &&
     Array.isArray(heirData.proof) &&
     heirData.proof.length > 0 &&
     claimedLeaf !== true &&
@@ -404,6 +514,61 @@ export default function ClaimPage() {
           получение доли.
         </p>
       </header>
+
+      <section className="mb-8 rounded-2xl border border-black/5 bg-paper/40 p-6">
+        <h2 className="text-lg font-semibold text-ink">
+          Извлечь долю ключа из файла
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          Загрузите JSON-файл с долей ключа (например, файл наследника
+          heir_&lt;id&gt; или файл организации organization_key_share). Мы
+          покажем только строку доли ключа, чтобы вы могли переслать её другим
+          участникам, не передавая весь файл. Обработка выполняется локально в
+          вашем браузере.
+        </p>
+        <input
+          type="file"
+          accept=".json,application/json"
+          onChange={onKeyShareFileChange}
+          className="mt-4 block w-full max-w-sm text-sm text-ink file:mr-3 file:rounded-lg file:border-0 file:bg-gold/20 file:px-4 file:py-2 file:text-sm file:font-medium file:text-ink file:hover:bg-gold/30"
+        />
+        {keyShareError && (
+          <p className="mt-2 text-sm text-red-600">{keyShareError}</p>
+        )}
+        {keyShareValue && (
+          <div className="mt-4 space-y-2">
+            <label className="text-sm font-medium text-ink">
+              Доля ключа (hex):
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={keyShareValue}
+                className="flex-1 rounded-xl border border-black/10 bg-white px-3 py-2 font-mono text-xs text-ink outline-none focus:ring-2 focus:ring-amber-300"
+              />
+              <button
+                type="button"
+                onClick={() => copyKeyShare(keyShareValue)}
+                className="shrink-0 rounded-xl border border-black/10 bg-paper px-3 py-2 text-sm font-medium text-ink hover:bg-black/5"
+              >
+                {keyShareCopied ? "Скопировано" : "Скопировать"}
+              </button>
+            </div>
+            {keyShareMeta?.threshold != null &&
+              keyShareMeta?.total != null && (
+                <p className="text-sm text-muted">
+                  Для восстановления ключа нужно{" "}
+                  <strong>{keyShareMeta.threshold}</strong> из{" "}
+                  <strong>{keyShareMeta.total}</strong> долей.
+                </p>
+              )}
+            {keyShareMeta?.description && (
+              <p className="text-xs text-muted">{keyShareMeta.description}</p>
+            )}
+          </div>
+        )}
+      </section>
 
       {!userAddress ? (
         <div className="rounded-2xl border border-black/10 bg-paper/40 p-6 text-center text-muted">
@@ -427,7 +592,105 @@ export default function ClaimPage() {
             )}
           </section>
 
-          {heirData && (
+          {heirData && isEncrypted && (
+            <section className="rounded-2xl border border-amber-200 bg-amber-50/60 p-6">
+              <h2 className="text-lg font-semibold text-ink">
+                Расшифровка долей
+              </h2>
+              {heirData.shamirMode === "organization" ? (
+                <div className="mt-3 rounded-xl border-2 border-amber-400 bg-amber-100/80 px-4 py-3 text-sm font-semibold text-amber-900">
+                  Нужно связаться с организацией — вторая доля ключа хранится у
+                  доверенной организации. Организация выйдет на связь с
+                  наследниками.
+                </div>
+              ) : (
+                <div className="mt-3 rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-ink">
+                  Нужно связаться с другими наследниками — соберите доли ключа
+                  от наследников (организация не участвует).
+                </div>
+              )}
+              {heirData.shamirThreshold != null &&
+                heirData.shamirTotal != null && (
+                  <p className="mt-3 text-sm font-medium text-ink">
+                    Для восстановления ключа нужно{" "}
+                    <strong>{heirData.shamirThreshold}</strong> из{" "}
+                    <strong>{heirData.shamirTotal}</strong> долей.
+                  </p>
+                )}
+              <p className="mt-2 text-sm text-muted">
+                Доли в файле зашифрованы. Введите доли ключа Shamir для
+                восстановления ключа шифрования. Ваша доля из файла уже
+                подставлена — добавьте недостающие доли от других наследников
+                или организации.
+              </p>
+              <div className="mt-4 space-y-2">
+                {shamirInputs.map((s, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={s}
+                      onChange={(e) =>
+                        setShamirInputs((prev) => {
+                          const next = [...prev];
+                          next[i] = e.target.value;
+                          return next;
+                        })
+                      }
+                      placeholder={`Доля ключа ${i + 1} (hex)`}
+                      className="flex-1 rounded-xl border border-black/10 bg-white px-3 py-2 font-mono text-xs outline-none focus:ring-2 focus:ring-amber-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (shamirInputs.length <= 2) return;
+                        setShamirInputs((prev) =>
+                          prev.filter((_, idx) => idx !== i),
+                        );
+                      }}
+                      disabled={shamirInputs.length <= 2}
+                      className="rounded-xl border border-black/10 px-3 py-2 text-sm text-muted hover:bg-black/5 disabled:opacity-40"
+                    >
+                      −
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShamirInputs((prev) => {
+                      if (
+                        maxShamirInputs != null &&
+                        prev.length >= maxShamirInputs
+                      ) {
+                        return prev;
+                      }
+                      return [...prev, ""];
+                    })
+                  }
+                  disabled={
+                    maxShamirInputs != null &&
+                    shamirInputs.length >= maxShamirInputs
+                  }
+                  className="rounded-xl border-2 border-dashed border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-ink hover:bg-amber-100"
+                >
+                  + Добавить долю ключа
+                </button>
+              </div>
+              {decryptError && (
+                <p className="mt-3 text-sm text-red-600">{decryptError}</p>
+              )}
+              <button
+                type="button"
+                onClick={handleDecrypt}
+                disabled={decrypting}
+                className="mt-4 rounded-xl border-2 border-gold bg-gold px-6 py-2 text-sm font-semibold text-ink hover:bg-gold/90 disabled:opacity-50"
+              >
+                {decrypting ? "Расшифровка…" : "Расшифровать доли"}
+              </button>
+            </section>
+          )}
+
+          {heirData && !isEncrypted && (
             <>
               <section className="rounded-2xl border border-black/5 bg-paper/40 p-6">
                 <h2 className="text-lg font-semibold text-ink">Информация</h2>
