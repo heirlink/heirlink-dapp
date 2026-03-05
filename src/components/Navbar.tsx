@@ -50,14 +50,6 @@ export function Navbar() {
             >
               Документация
             </Link>
-            <Link
-              href="/secret"
-              className={`text-sm font-medium transition hover:text-gold ${
-                pathname === "/secret" ? "text-ink" : "text-muted"
-              }`}
-            >
-              Тесты
-            </Link>
           </div>
         </div>
 
